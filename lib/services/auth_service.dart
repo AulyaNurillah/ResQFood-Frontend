@@ -54,9 +54,9 @@ class AuthService {
 
   Future<void> register({
     required String fullName,
+    required String phone,
     required String email,
     required String password,
-    required String phone,
   }) async {
 
     final response = await http.post(
@@ -68,23 +68,17 @@ class AuthService {
 
       body: jsonEncode({
         "fullName": fullName,
+        "phone": phone,
         "email": email,
         "password": password,
-        "phone": phone,
       }),
     );
 
-    if (response.statusCode == 201) {
-      return;
+    if (response.statusCode != 201) {
+      throw Exception(
+        "Gagal registrasi",
+      );
     }
-
-    final error =
-        jsonDecode(response.body);
-
-    throw Exception(
-      error["message"] ??
-          "Registrasi gagal",
-    );
   }
 
   Future<void> forgotPassword(

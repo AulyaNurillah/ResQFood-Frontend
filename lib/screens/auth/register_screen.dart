@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import '../../constants/app_colors.dart';
 import '../../services/auth_service.dart';
 
@@ -52,14 +51,14 @@ class _RegisterScreenState
         fullName:
             fullNameController.text.trim(),
 
+        phone:
+            phoneController.text.trim(),
+
         email:
             emailController.text.trim(),
 
         password:
             passwordController.text,
-
-        phone:
-            phoneController.text.trim(),
       );
 
       if (!mounted) return;
@@ -68,7 +67,7 @@ class _RegisterScreenState
           .showSnackBar(
         const SnackBar(
           content: Text(
-            "Registrasi berhasil, silakan login",
+            "Registrasi berhasil",
           ),
         ),
       );
@@ -80,11 +79,11 @@ class _RegisterScreenState
       ScaffoldMessenger.of(context)
           .showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString(),
-          ),
+          content:
+              Text(e.toString()),
         ),
       );
+
     } finally {
 
       setState(() {
@@ -99,6 +98,9 @@ class _RegisterScreenState
 
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
+
         decoration:
             const BoxDecoration(
           gradient: LinearGradient(
@@ -114,11 +116,11 @@ class _RegisterScreenState
         ),
 
         child: SafeArea(
-          child: SingleChildScrollView(
+          child: Padding(
             padding:
                 const EdgeInsets.symmetric(
-              horizontal: 40,
-              vertical: 60,
+              horizontal: 28,
+              vertical: 20,
             ),
 
             child: Form(
@@ -130,10 +132,14 @@ class _RegisterScreenState
 
                 children: [
 
+                  const SizedBox(
+                    height: 20,
+                  ),
+
                   const Text(
                     "Sign Up",
                     style: TextStyle(
-                      fontSize: 35,
+                      fontSize: 38,
                       fontWeight:
                           FontWeight.bold,
                       color:
@@ -142,7 +148,7 @@ class _RegisterScreenState
                   ),
 
                   const SizedBox(
-                    height: 10,
+                    height: 8,
                   ),
 
                   const Text(
@@ -155,7 +161,7 @@ class _RegisterScreenState
                   ),
 
                   const SizedBox(
-                    height: 40,
+                    height: 32,
                   ),
 
                   buildLabel(
@@ -167,16 +173,18 @@ class _RegisterScreenState
                         fullNameController,
                     validator:
                         (value) {
+
                       if (value == null ||
                           value.isEmpty) {
                         return "Nama wajib diisi";
                       }
+
                       return null;
                     },
                   ),
 
                   const SizedBox(
-                    height: 20,
+                    height: 14,
                   ),
 
                   buildLabel(
@@ -188,16 +196,18 @@ class _RegisterScreenState
                         emailController,
                     validator:
                         (value) {
+
                       if (value == null ||
                           value.isEmpty) {
                         return "Email wajib diisi";
                       }
+
                       return null;
                     },
                   ),
 
                   const SizedBox(
-                    height: 20,
+                    height: 14,
                   ),
 
                   buildLabel(
@@ -228,11 +238,44 @@ class _RegisterScreenState
 
                     decoration:
                         InputDecoration(
+                      contentPadding:
+                          const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+
                       border:
                           OutlineInputBorder(
                         borderRadius:
                             BorderRadius.circular(
                           15,
+                        ),
+                      ),
+
+                      enabledBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          15,
+                        ),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              AppColors.primary,
+                        ),
+                      ),
+
+                      focusedBorder:
+                          OutlineInputBorder(
+                        borderRadius:
+                            BorderRadius.circular(
+                          15,
+                        ),
+                        borderSide:
+                            const BorderSide(
+                          color:
+                              AppColors.secondary,
+                          width: 2,
                         ),
                       ),
 
@@ -243,18 +286,21 @@ class _RegisterScreenState
                               ? Icons.visibility
                               : Icons.visibility_off,
                         ),
+
                         onPressed: () {
+
                           setState(() {
                             obscurePassword =
                                 !obscurePassword;
                           });
+
                         },
                       ),
                     ),
                   ),
 
                   const SizedBox(
-                    height: 20,
+                    height: 14,
                   ),
 
                   buildLabel(
@@ -281,7 +327,7 @@ class _RegisterScreenState
                   ),
 
                   const SizedBox(
-                    height: 40,
+                    height: 24,
                   ),
 
                   SizedBox(
@@ -331,9 +377,7 @@ class _RegisterScreenState
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 25,
-                  ),
+                  const Spacer(),
 
                   Row(
                     mainAxisAlignment:
@@ -342,7 +386,7 @@ class _RegisterScreenState
                     children: [
 
                       const Text(
-                        "Have an account?",
+                        "Already have an account?",
                       ),
 
                       TextButton(
@@ -352,11 +396,16 @@ class _RegisterScreenState
                           );
                         },
 
-                        child: const Text(
+                        child:
+                            const Text(
                           "Sign In here!",
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(
+                    height: 10,
                   ),
                 ],
               ),
@@ -373,13 +422,17 @@ class _RegisterScreenState
     return Padding(
       padding:
           const EdgeInsets.only(
-        bottom: 8,
+        bottom: 6,
       ),
+
       child: Text(
         text,
         style: const TextStyle(
-          color: AppColors.primary,
+          color:
+              AppColors.primary,
           fontSize: 15,
+          fontWeight:
+              FontWeight.w500,
         ),
       ),
     );
@@ -388,22 +441,59 @@ class _RegisterScreenState
   Widget buildField({
     required TextEditingController
         controller,
+
     required String? Function(
       String?,
     ) validator,
+
     TextInputType keyboardType =
         TextInputType.text,
   }) {
+
     return TextFormField(
       controller: controller,
       validator: validator,
       keyboardType: keyboardType,
 
       decoration: InputDecoration(
-        border: OutlineInputBorder(
+        contentPadding:
+            const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
+
+        border:
+            OutlineInputBorder(
           borderRadius:
               BorderRadius.circular(
             15,
+          ),
+        ),
+
+        enabledBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            15,
+          ),
+          borderSide:
+              const BorderSide(
+            color:
+                AppColors.primary,
+          ),
+        ),
+
+        focusedBorder:
+            OutlineInputBorder(
+          borderRadius:
+              BorderRadius.circular(
+            15,
+          ),
+          borderSide:
+              const BorderSide(
+            color:
+                AppColors.secondary,
+            width: 2,
           ),
         ),
       ),

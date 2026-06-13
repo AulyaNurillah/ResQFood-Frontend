@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:resqfood_app/services/api_service.dart';
-import 'package:resqfood_app/screens/buyer/order_qr_screen.dart';
+import 'ambilpesanan_screen.dart';
 
 class OrderListScreen extends StatefulWidget {
   @override
@@ -133,10 +133,16 @@ class _OrderListScreenState extends State<OrderListScreen> {
                                     onPressed: () {
                                       Navigator.push(
                                         context,
-                                        MaterialPageRoute(builder: (context) => OrderQRScreen(orderId: order['id'])),
+                                        MaterialPageRoute(
+                                          builder: (context) => AmbilPesananScreen(
+                                            orderId: order['id'].toString(),
+                                            orderData: order,
+                                            productData: order['product'],
+                                          ),
+                                        ),
                                       );
                                     },
-                                    child: Text('Lihat QR'),
+                                    child: const Text('Lihat QR'),
                                   ),
                                 Spacer(),
                                 TextButton(

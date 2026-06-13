@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import '../models/product_model.dart';
+import '../screens/buyer/product_detail_screen.dart';
 
 class ProductCard
     extends StatelessWidget {
@@ -16,7 +17,16 @@ class ProductCard
   @override
   Widget build(BuildContext context) {
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: product.id),
+          ),
+        );
+      },
+      child: Container(
       margin:
           const EdgeInsets.only(
         bottom: 18,
@@ -155,7 +165,14 @@ class ProductCard
                 ),
 
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailScreen(productId: product.id),
+                      ),
+                    );
+                  },
 
                   style:
                       ElevatedButton
@@ -173,6 +190,6 @@ class ProductCard
           ),
         ],
       ),
-    );
+    ),);
   }
 }

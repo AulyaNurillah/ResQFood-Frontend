@@ -40,6 +40,10 @@ class AuthService {
         loginResponse.user.roles,
       );
 
+      await saveUserId(
+        loginResponse.user.id,
+      );
+
       return loginResponse;
     }
 
@@ -61,11 +65,9 @@ class AuthService {
 
     final response = await http.post(
       Uri.parse(ApiConstants.register),
-
       headers: {
         "Content-Type": "application/json",
       },
-
       body: jsonEncode({
         "fullName": fullName,
         "phone": phone,
@@ -74,11 +76,14 @@ class AuthService {
       }),
     );
 
+    print("STATUS : ${response.statusCode}");
+    print("BODY   : ${response.body}");
+
     if (response.statusCode != 201) {
-      throw Exception(
-        "Gagal registrasi",
-      );
+      throw Exception(response.body);
     }
+    print("STATUS: ${response.statusCode}");
+    print("BODY: ${response.body}");
   }
 
   Future<void> forgotPassword(
@@ -187,4 +192,14 @@ class AuthService {
 
     await prefs.clear();
   }
+
+  Future<void> saveUserId(String id) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString("user_id", id);
+}
+
+Future<String?> getUserId() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getString("user_id");
+}
 }

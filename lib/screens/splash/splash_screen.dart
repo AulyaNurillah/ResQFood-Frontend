@@ -55,12 +55,12 @@ class _SplashScreenState
 
       body: Center(
         child: Image.asset(
-          "assets/images/splash_logo.png",
+          "splash_screenpng.png",
 
           width: MediaQuery.of(context)
                   .size
                   .width *
-              0.85,
+              170,
 
           fit: BoxFit.contain,
         ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:resqfood_app/services/api_service.dart';
-import 'package:resqfood_app/screens/buyer/order_qr_screen.dart';
+import 'package:resqfood_app/screens/buyer/ambilpesanan_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -22,168 +22,391 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Future<void> _fetchProduct() async {
+    setState(() => _isLoading = true);
     try {
-      final data = await ApiService.getProductById(widget.productId);
-      setState(() {
-        _product = data;
-        _isLoading = false;
-      });
+      final response = await ApiService.getProductById(widget.productId);
+      
+      // Cek apakah response mengandung error atau data
+      if (response.containsKey('error')) {
+        throw Exception(response['error']);
+      }
+      
+      if (mounted) {
+        setState(() {
+          _product = response;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat detail produk: $e')),
-      );
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat detail produk: $e')),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
   Future<void> _orderNow() async {
     setState(() => _isOrdering = true);
+    
     try {
+      // Panggil API create order
       final response = await ApiService.createOrder(widget.productId, 1);
-      if (response.containsKey('id')) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => OrderQRScreen(orderId: response['id'])),
-        );
+      
+      // Cek apakah order berhasil dibuat
+      if (response.containsKey('id') || response.containsKey('order')) {
+        final orderData = response.containsKey('order') ? response['order'] : response;
+        
+        if (mounted) {
+          // Navigasi ke halaman konfirmasi QR
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AmbilPesananScreen(
+                orderId: orderData['id'] ?? orderData['orderId'],
+                orderData: orderData,
+                productData: _product!,
+              ),
+            ),
+          ).then((_) {
+            // Reset state setelah kembali
+            if (mounted) {
+              setState(() => _isOrdering = false);
+            }
+          });
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Gagal membuat pesanan')),
-        );
+        // Jika gagal, tampilkan error
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? 'Gagal membuat pesanan')),
+          );
+          setState(() => _isOrdering = false);
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    } finally {
-      setState(() => _isOrdering = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        setState(() => _isOrdering = false);
+      }
+    }
+  }
+
+  String formatPrice(dynamic price) {
+    return "Rp ${price.toString()}";
+  }
+
+  String _getTimeFromDateTime(String? dateTime) {
+    if (dateTime == null) return '';
+    try {
+      if (dateTime.contains('T')) {
+        // Format ISO
+        final time = DateTime.parse(dateTime);
+        return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+      } else {
+        // Format sudah waktu saja
+        return dateTime.substring(0, 5);
+      }
+    } catch (e) {
+      return '';
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return Scaffold(body: Center(child: CircularProgressIndicator()));
-    if (_product == null) return Scaffold(body: Center(child: Text('Produk tidak ditemukan')));
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
+    if (_product == null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text('Produk tidak ditemukan'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color.fromRGBO(59, 98, 85, 1),
+                ),
+                child: const Text('Kembali'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    
     final p = _product!;
-    final originalPrice = p['price'];
-    final discountedPrice = (originalPrice * 0.5).toInt(); // contoh diskon 50%
+    final originalPrice = p['price'] ?? 0;
+    
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Gambar header
-            Container(
-              height: 265,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(45)),
-                image: p['image_url'] != null
-                    ? DecorationImage(image: NetworkImage(p['image_url']), fit: BoxFit.cover)
-                    : null,
-                color: Colors.grey.shade300,
-              ),
-              child: p['image_url'] == null ? Icon(Icons.food_bank, size: 80) : null,
+            // Gambar header dengan tombol back
+            Stack(
+              children: [
+                Container(
+                  height: 265,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(45)),
+                    image: p['image_url'] != null && p['image_url'].toString().isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(p['image_url']), 
+                            fit: BoxFit.cover
+                          )
+                        : null,
+                    color: Colors.grey.shade300,
+                  ),
+                  child: p['image_url'] == null || p['image_url'].toString().isEmpty
+                      ? const Icon(Icons.food_bank, size: 80, color: Colors.grey)
+                      : null,
+                ),
+                // Tombol back
+                Positioned(
+                  top: 40,
+                  left: 16,
+                  child: CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.5),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            // Harga dan diskon
+            
+            // Harga dan info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(9999),
-                      color: Color.fromRGBO(35, 74, 62, 1),
+                      color: const Color.fromRGBO(35, 74, 62, 1),
                     ),
-                    child: Text(
-                      '${((originalPrice - discountedPrice) / originalPrice * 100).toInt()}% SAVED',
-                      style: TextStyle(color: Colors.white),
+                    child: const Text(
+                      'FOOD SAVING',
+                      style: TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
-                  Spacer(),
+                  const Spacer(),
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(9999),
-                      color: Color.fromRGBO(35, 74, 62, 1),
+                      color: const Color.fromRGBO(35, 74, 62, 1),
                     ),
                     child: Text(
-                      'Rp $discountedPrice',
-                      style: TextStyle(color: Color.fromRGBO(240, 226, 186, 1), fontSize: 20),
+                      formatPrice(originalPrice),
+                      style: const TextStyle(
+                        color: Color.fromRGBO(240, 226, 186, 1), 
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            
             // Nama, deskripsi, dll
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(p['name'], style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  Text(p['seller']?['full_name'] ?? 'Penjual', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                  SizedBox(height: 16),
-                  Text(p['description'] ?? '', style: TextStyle(fontSize: 15)),
-                  SizedBox(height: 24),
-                  Wrap(spacing: 8, children: [
-                    Chip(label: Text('High Protein'), backgroundColor: Color.fromRGBO(78, 102, 93, 0.4)),
-                    Chip(label: Text('Vegetarian'), backgroundColor: Color.fromRGBO(78, 102, 93, 0.4)),
-                  ]),
-                  SizedBox(height: 16),
-                  if (p['pickup_start'] != null && p['pickup_end'] != null)
-                    Chip(
-                      label: Text(
-                        'Pickup at ${p['pickup_start'].toString().substring(11, 16)} - ${p['pickup_end'].toString().substring(11, 16)}',
-                      ),
-                      backgroundColor: Color.fromRGBO(78, 102, 93, 0.4),
-                    ),
-                  SizedBox(height: 24),
-                  Text('Pickup Location', style: TextStyle(fontSize: 24)),
-                  SizedBox(height: 12),
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Color.fromRGBO(35, 74, 62, 1), width: 2),
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/Rectangle11.png'),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                  Text(
+                    p['name'] ?? 'Produk',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(height: 16),
-                  Center(
-                    child: TextButton(
-                      onPressed: () {},
-                      child: Text('Get Directions'),
-                    ),
+                  const SizedBox(height: 4),
+                  Text(
+                    p['seller_name'] ?? p['seller']?['full_name'] ?? 'Penjual',
+                    style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
-                  SizedBox(height: 24),
-                  Row(
+                  const SizedBox(height: 16),
+                  Text(
+                    p['description'] ?? 'Tidak ada deskripsi',
+                    style: const TextStyle(fontSize: 15, height: 1.4),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Info tags
+                  Wrap(
+                    spacing: 8, 
+                    runSpacing: 8,
                     children: [
-                      CircleAvatar(radius: 24, backgroundColor: Colors.grey, child: Icon(Icons.store)),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Managed by ${p['seller']?['full_name'] ?? 'Admin'}',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text('Active 5 mins ago', style: TextStyle(color: Colors.grey)),
-                          ],
+                      if (p['category'] != null)
+                        Chip(
+                          label: Text(p['category']),
+                          backgroundColor: const Color.fromRGBO(78, 102, 93, 0.4),
                         ),
+                      const Chip(
+                        label: Text('Food Saving'),
+                        backgroundColor: Color.fromRGBO(78, 102, 93, 0.4),
                       ),
-                      OutlinedButton(
-                        onPressed: () {},
-                        child: Text('Chat'),
-                      ),
+                      if ((p['stock'] ?? 0) > 0)
+                        Chip(
+                          label: Text('${p['stock']} tersisa'),
+                          backgroundColor: const Color.fromRGBO(78, 102, 93, 0.4),
+                        ),
                     ],
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 16),
+                  
+                  // Waktu pick-up
+                  if (p['pickup_start'] != null && p['pickup_end'] != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color.fromRGBO(78, 102, 93, 0.4),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.access_time, size: 16, color: Color.fromRGBO(35, 74, 62, 1)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Pickup: ${_getTimeFromDateTime(p['pickup_start'])} - ${_getTimeFromDateTime(p['pickup_end'])} WIB',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                  
+                  // Lokasi Pickup
+                  const Text(
+                    'Pickup Location',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  // Card alamat
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color.fromRGBO(35, 74, 62, 1), width: 1),
+                      color: Colors.white,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.location_on, color: Color.fromRGBO(59, 98, 85, 1), size: 30),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Alamat Pengambilan',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                p['store_address'] ?? p['seller']?['address'] ?? 'Alamat tidak tersedia',
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // Tombol directions
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        // Buka Google Maps
+                        final address = p['store_address'] ?? p['seller']?['address'] ?? '';
+                        if (address.isNotEmpty) {
+                          // Encode address untuk URL
+                          final encodedAddress = Uri.encodeComponent(address);
+                          // Buka Google Maps (di web atau app)
+                          // Untuk production, gunakan url_launcher package
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Fitur arah akan segera tersedia')),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Alamat tidak tersedia')),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.directions),
+                      label: const Text('Get Directions'),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Info penjual
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(78, 102, 93, 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        const CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Color.fromRGBO(59, 98, 85, 1),
+                          child: Icon(Icons.store, color: Colors.white),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                p['seller_name'] ?? p['seller']?['full_name'] ?? 'Penjual',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              const Text('Online', style: TextStyle(color: Colors.green, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            // Navigasi ke chat
+                            Navigator.pushNamed(
+                              context,
+                              '/chat-room',
+                              arguments: {'sellerId': p['seller_id'], 'productId': widget.productId},
+                            );
+                          },
+                          icon: const Icon(Icons.chat_bubble_outline, size: 18),
+                          label: const Text('Chat'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color.fromRGBO(59, 98, 85, 1),
+                            side: const BorderSide(color: Color.fromRGBO(59, 98, 85, 1)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 100), // Space untuk bottom bar
                 ],
               ),
             ),
@@ -193,20 +416,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       bottomNavigationBar: Container(
         height: 78,
         decoration: BoxDecoration(
-          boxShadow: [BoxShadow(color: Colors.black26, offset: Offset(0, -1), blurRadius: 1)],
-          color: Color.fromRGBO(203, 222, 211, 1),
+          boxShadow: const [BoxShadow(color: Colors.black26, offset: Offset(0, -1), blurRadius: 1)],
+          color: const Color.fromRGBO(203, 222, 211, 1),
         ),
         child: Center(
           child: ElevatedButton(
             onPressed: _isOrdering ? null : _orderNow,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Color.fromRGBO(59, 98, 85, 1),
-              padding: EdgeInsets.symmetric(horizontal: 50, vertical: 12),
+              backgroundColor: const Color.fromRGBO(59, 98, 85, 1),
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             child: _isOrdering
-                ? CircularProgressIndicator(color: Colors.white)
-                : Text('Grab Now', style: TextStyle(fontSize: 20, color: Color.fromRGBO(240, 226, 186, 1))),
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : const Text(
+                    'Grab Now',
+                    style: TextStyle(fontSize: 20, color: Color.fromRGBO(240, 226, 186, 1)),
+                  ),
           ),
         ),
       ),

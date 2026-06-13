@@ -19,7 +19,6 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
   final _idCardNumberController = TextEditingController();
   bool _isLoading = false;
   String? _idCardImageUrl; // nanti bisa tambah upload gambar KTP
-  bool _isUploading = false;
 
   @override
   void dispose() {

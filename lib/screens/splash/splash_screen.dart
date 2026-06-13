@@ -57,10 +57,7 @@ class _SplashScreenState
         child: Image.asset(
           "splash_screenpng.png",
 
-          width: MediaQuery.of(context)
-                  .size
-                  .width *
-              170,
+          width: 170,
 
           fit: BoxFit.contain,
         ),

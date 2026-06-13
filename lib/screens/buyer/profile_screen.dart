@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:resqfood_app/services/api_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/api_service.dart';
+import '../../constants/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({Key? key}) : super(key: key);
+
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
@@ -11,6 +16,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Map<String, dynamic>? _profile;
   bool _isLoading = true;
   bool _isUpgrading = false;
+  String _currentRole = "pembeli";
+  File? _avatarFile;
 
   @override
   void initState() {
@@ -22,8 +29,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isLoading = true);
     try {
       final data = await ApiService.getProfile();
+      final prefs = await SharedPreferences.getInstance();
+      final savedRole = prefs.getString('current_role') ?? "pembeli";
+
       setState(() {
         _profile = data;
+        _currentRole = savedRole;
         _isLoading = false;
       });
     } catch (e) {
@@ -34,20 +45,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickAvatar(ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(source: source);
+      if (picked != null) {
+        setState(() {
+          _avatarFile = File(picked.path);
+        });
+        
+        // Upload ke backend
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const Center(child: CircularProgressIndicator()),
+        );
+
+        final response = await ApiService.uploadProfilePicture(picked.path);
+        
+        if (context.mounted) Navigator.pop(context);
+
+        if (response['avatarUrl'] != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto profil berhasil diperbarui!'), backgroundColor: Colors.green),
+          );
+          _loadProfile();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? 'Gagal mengupload foto')),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error picking avatar: $e");
+    }
+  }
+
+  void _showAvatarPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF234A3E)),
+              title: const Text('Ambil Foto via Kamera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAvatar(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF234A3E)),
+              title: const Text('Pilih dari Galeri'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAvatar(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _upgradeToSeller() async {
     setState(() => _isUpgrading = true);
     try {
-      final response = await ApiService.upgradeToSeller();
-      if (response['id'] != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Selamat! Anda sekarang penjual. Silakan lengkapi data toko.')),
-        );
-        Navigator.pushNamed(context, '/upgrade-seller');
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Gagal upgrade')),
-        );
-      }
+      // Direct call upgrade jika toko belum terdaftar, 
+      // tapi idealnya mengisi data di upgrade-seller screen
+      Navigator.pushNamed(context, '/upgrade-seller');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
@@ -55,6 +122,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       setState(() => _isUpgrading = false);
     }
+  }
+
+  Future<void> _toggleRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    final nextRole = _currentRole == "pembeli" ? "penjual" : "pembeli";
+    await prefs.setString('current_role', nextRole);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Berhasil beralih ke Mode ${nextRole == "penjual" ? "Penjual" : "Pembeli"}')),
+    );
+    
+    // Refresh page / reload dashboard
+    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
   }
 
   Future<void> _logout() async {
@@ -66,10 +146,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (_profile == null) {
-      return Scaffold(body: Center(child: Text('Gagal memuat profil')));
+      return const Scaffold(body: Center(child: Text('Gagal memuat profil')));
     }
 
     final roles = _profile!['roles'] as List? ?? [];
@@ -79,12 +159,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatarUrl = _profile!['avatar_url'];
 
     return Scaffold(
-      backgroundColor: Color.fromRGBO(203, 222, 211, 1),
+      backgroundColor: const Color(0xFFCBDED3),
       appBar: AppBar(
-        backgroundColor: Color.fromRGBO(203, 222, 211, 1),
+        backgroundColor: const Color(0xFFCBDED3),
         elevation: 0,
-        title: Text('Profile', style: TextStyle(color: Color.fromRGBO(19, 59, 31, 1), fontSize: 24)),
+        title: const Text('Profile', style: TextStyle(color: Color(0xFF133B1F), fontSize: 24, fontWeight: FontWeight.bold)),
         centerTitle: true,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_none, color: Color(0xFF133B1F)),
+            onPressed: () => Navigator.pushNamed(context, '/notifications'),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -92,32 +179,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
             // Header profil
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(vertical: 32),
+              padding: const EdgeInsets.symmetric(vertical: 32),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Color.fromRGBO(59, 98, 85, 1),
-                    backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-                    child: avatarUrl == null ? Icon(Icons.person, size: 50, color: Colors.white) : null,
+                  GestureDetector(
+                    onTap: _showAvatarPicker,
+                    child: CircleAvatar(
+                      radius: 50,
+                      backgroundColor: const Color(0xFF3B6255),
+                      backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
+                      child: avatarUrl == null ? const Icon(Icons.person, size: 50, color: Colors.white) : null,
+                    ),
                   ),
-                  SizedBox(height: 12),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Tap foto untuk mengganti',
+                    style: TextStyle(fontSize: 11, color: Color(0xFF234A3E), fontStyle: FontStyle.italic),
+                  ),
+                  const SizedBox(height: 12),
                   Text(
                     fullName,
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color.fromRGBO(19, 59, 31, 1)),
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF133B1F)),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
                     email,
-                    style: TextStyle(fontSize: 14, color: Color.fromRGBO(35, 74, 62, 0.8)),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF234A3E)),
                   ),
-                  if (isSeller) ...[
-                    SizedBox(height: 8),
-                    Chip(
-                      label: Text('Penjual', style: TextStyle(color: Colors.white)),
-                      backgroundColor: Color.fromRGBO(59, 98, 85, 1),
-                    ),
-                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Chip(
+                        label: Text('Mode: ${_currentRole == "penjual" ? "Penjual" : "Pembeli"}', style: const TextStyle(color: Colors.white, fontSize: 12)),
+                        backgroundColor: const Color(0xFF234A3E),
+                      ),
+                      if (isSeller) ...[
+                        const SizedBox(width: 8),
+                        const Chip(
+                          label: Text('Mitra Penjual', style: TextStyle(color: Colors.white, fontSize: 12)),
+                          backgroundColor: Colors.orange,
+                        ),
+                      ]
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -134,21 +239,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.pushNamed(context, '/edit-profile');
                     },
                   ),
-                  _buildMenuItem(
-                    icon: Icons.notifications_none,
-                    title: 'Preferences',
-                    subtitle: 'Dietary and notifications',
-                    onTap: () {
-                      // Navigasi ke halaman notifikasi (opsional)
-                      Navigator.pushNamed(context, '/notifications');
-                    },
-                  ),
-                  _buildMenuItem(
-                    icon: Icons.help_outline,
-                    title: 'Help Center',
-                    subtitle: 'FAQs and support',
-                    onTap: () {},
-                  ),
+                  if (isSeller)
+                    _buildMenuItem(
+                      icon: Icons.swap_horiz,
+                      title: 'Beralih Mode',
+                      subtitle: _currentRole == "pembeli" ? 'Masuk ke mode penjual' : 'Masuk ke mode pembeli',
+                      onTap: _toggleRole,
+                    ),
                   if (!isSeller)
                     _buildMenuItem(
                       icon: Icons.store,
@@ -158,16 +255,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       isLoading: _isUpgrading,
                     ),
                   _buildMenuItem(
+                    icon: Icons.notifications_none,
+                    title: 'Notifikasi',
+                    subtitle: 'Lihat pemberitahuan Anda',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/notifications');
+                    },
+                  ),
+                  _buildMenuItem(
                     icon: Icons.logout,
                     title: 'Logout',
-                    subtitle: '',
+                    subtitle: 'Keluar dari akun',
                     onTap: _logout,
                     isDestructive: true,
                   ),
                 ],
               ),
             ),
-            SizedBox(height: 40),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -183,18 +288,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool isDestructive = false,
   }) {
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Color.fromRGBO(240, 226, 186, 1),
+        color: const Color(0xFFF0E2BA),
         borderRadius: BorderRadius.circular(16),
       ),
       child: ListTile(
-        leading: Icon(icon, color: isDestructive ? Colors.red : Color.fromRGBO(59, 98, 85, 1)),
-        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : Color.fromRGBO(35, 74, 62, 1))),
+        leading: Icon(icon, color: isDestructive ? Colors.red : const Color(0xFF3B6255)),
+        title: Text(title, style: TextStyle(color: isDestructive ? Colors.red : const Color(0xFF234A3E), fontWeight: FontWeight.bold)),
         subtitle: subtitle.isNotEmpty ? Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade700)) : null,
         trailing: isLoading
-            ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-            : Icon(Icons.arrow_forward_ios, size: 16, color: Color.fromRGBO(35, 74, 62, 0.5)),
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+            : const Icon(Icons.arrow_forward_ios, size: 16, color: Color(0xFF234A3E)),
         onTap: onTap,
       ),
     );

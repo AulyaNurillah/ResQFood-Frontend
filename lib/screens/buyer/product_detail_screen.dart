@@ -4,10 +4,10 @@ import 'package:resqfood_app/screens/buyer/ambilpesanan_screen.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
-  const ProductDetailScreen({required this.productId, Key? key}) : super(key: key);
+  const ProductDetailScreen({required this.productId, super.key});
 
   @override
-  _ProductDetailScreenState createState() => _ProductDetailScreenState();
+  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
 
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
@@ -40,10 +40,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat detail produk: $e')),
-        );
-        Navigator.pop(context);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memuat detail produk: $e')),
+          );
+          Navigator.pop(context);
+        }
       }
     }
   }
@@ -180,7 +182,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   top: 40,
                   left: 16,
                   child: CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.5),
+                    backgroundColor: const Color.fromRGBO(0, 0, 0, 0.5),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
@@ -342,16 +344,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         final address = p['store_address'] ?? p['seller']?['address'] ?? '';
                         if (address.isNotEmpty) {
                           // Encode address untuk URL
-                          final encodedAddress = Uri.encodeComponent(address);
                           // Buka Google Maps (di web atau app)
                           // Untuk production, gunakan url_launcher package
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Fitur arah akan segera tersedia')),
-                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Fitur arah akan segera tersedia')),
+                            );
+                          }
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Alamat tidak tersedia')),
-                          );
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Alamat tidak tersedia')),
+                            );
+                          }
                         }
                       },
                       icon: const Icon(Icons.directions),

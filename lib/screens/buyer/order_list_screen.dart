@@ -3,8 +3,10 @@ import 'package:resqfood_app/services/api_service.dart';
 import 'ambilpesanan_screen.dart';
 
 class OrderListScreen extends StatefulWidget {
+  const OrderListScreen({super.key});
+
   @override
-  _OrderListScreenState createState() => _OrderListScreenState();
+  State<OrderListScreen> createState() => _OrderListScreenState();
 }
 
 class _OrderListScreenState extends State<OrderListScreen> {
@@ -27,9 +29,11 @@ class _OrderListScreenState extends State<OrderListScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat pesanan: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat pesanan: $e')),
+        );
+      }
     }
   }
 
@@ -37,19 +41,25 @@ class _OrderListScreenState extends State<OrderListScreen> {
     try {
       final response = await ApiService.cancelOrder(orderId); // perlu tambahkan method di ApiService
       if (response['status'] != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pesanan dibatalkan')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pesanan dibatalkan')),
+          );
+        }
         _fetchOrders();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Gagal membatalkan')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? 'Gagal membatalkan')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 

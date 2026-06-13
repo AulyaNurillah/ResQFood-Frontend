@@ -78,7 +78,7 @@ class ProductCard
               fit: BoxFit.cover,
 
               errorBuilder:
-                  (_, __, ___) {
+                  (context, error, stackTrace) {
 
                 return Container(
                   height: 140,

@@ -1,15 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:intl/intl.dart';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
 
 class AddProductScreen extends StatefulWidget {
-  const AddProductScreen({Key? key}) : super(key: key);
+  const AddProductScreen({super.key});
 
   @override
-  _AddProductScreenState createState() => _AddProductScreenState();
+  State<AddProductScreen> createState() => _AddProductScreenState();
 }
 
 class _AddProductScreenState extends State<AddProductScreen> {
@@ -106,15 +105,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih foto produk terlebih dahulu')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan pilih foto produk terlebih dahulu')),
+        );
+      }
       return;
     }
     if (_expiredDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan tentukan tanggal kadaluwarsa')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan tentukan tanggal kadaluwarsa')),
+        );
+      }
       return;
     }
 
@@ -137,9 +140,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
       });
 
       if (response['id'] != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Produk berhasil dipublish!'), backgroundColor: Colors.green),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Produk berhasil dipublish!'), backgroundColor: Colors.green),
+          );
+        }
         // Clear form
         _nameController.clear();
         _descriptionController.clear();
@@ -150,14 +155,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
           _expiredDate = null;
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Gagal mempublish produk')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? 'Gagal mempublish produk')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       setState(() => _isLoading = false);
     }
@@ -195,7 +204,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   width: double.infinity,
                   height: 180,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.6),
+                    color: const Color.fromRGBO(255, 255, 255, 0.6),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: const Color(0xFF9BB0A5), width: 1.5),
                   ),
@@ -259,7 +268,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: const Color.fromRGBO(255, 255, 255, 0.9),
                     borderRadius: BorderRadius.circular(15),
                   ),
                   child: Row(

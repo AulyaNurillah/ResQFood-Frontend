@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../constants/app_colors.dart';
 import '../../models/product_model.dart';
 import '../../services/product_service.dart';
 import '../../services/api_service.dart';
@@ -129,11 +128,22 @@ class _HomeTabState extends State<HomeTab> {
   List<Product> filteredProducts = [];
   bool isLoading = true;
   String selectedCategory = "Semua";
+  Map<String, dynamic> _buyerStats = {};
 
   @override
   void initState() {
     super.initState();
     loadProducts();
+    _loadBuyerStats();
+  }
+
+  Future<void> _loadBuyerStats() async {
+    try {
+      final stats = await ApiService.getBuyerStats();
+      if (mounted) setState(() => _buyerStats = stats);
+    } catch (_) {
+      // ignore
+    }
   }
 
   Future<void> loadProducts() async {
@@ -219,6 +229,43 @@ class _HomeTabState extends State<HomeTab> {
                 ],
               ),
               const SizedBox(height: 20),
+
+              // BUYER STATS
+              if (_buyerStats.isNotEmpty)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Pesanan', style: TextStyle(fontSize: 12, color: Color(0xFF234A3E))),
+                            const SizedBox(height: 8),
+                            Text('${_buyerStats['orders_count'] ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Favorit', style: TextStyle(fontSize: 12, color: Color(0xFF234A3E))),
+                            const SizedBox(height: 8),
+                            Text('${_buyerStats['favorites'] ?? 0}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              if (_buyerStats.isNotEmpty) const SizedBox(height: 20),
 
               /// SEARCH
               TextField(
@@ -383,7 +430,7 @@ class _CategoryItem extends StatelessWidget {
 // TAMPILAN SELLER DASHBOARD (STATS + MY PRODUCTS)
 // ----------------------------------------------------
 class SellerDashboardTab extends StatefulWidget {
-  const SellerDashboardTab({Key? key}) : super(key: key);
+  const SellerDashboardTab({super.key});
 
   @override
   State<SellerDashboardTab> createState() => _SellerDashboardTabState();
@@ -392,6 +439,7 @@ class SellerDashboardTab extends StatefulWidget {
 class _SellerDashboardTabState extends State<SellerDashboardTab> {
   Map<String, dynamic> _stats = {};
   List<dynamic> _mySales = [];
+  List<dynamic> _myProducts = [];
   bool _isLoading = true;
 
   @override
@@ -405,9 +453,11 @@ class _SellerDashboardTabState extends State<SellerDashboardTab> {
     try {
       final stats = await ApiService.getSellerStats();
       final sales = await ApiService.getMySales();
+      final products = await ApiService.getMyProducts();
       setState(() {
         _stats = stats;
         _mySales = sales;
+        _myProducts = products;
         _isLoading = false;
       });
     } catch (e) {
@@ -493,7 +543,7 @@ class _SellerDashboardTabState extends State<SellerDashboardTab> {
                           padding: const EdgeInsets.all(24),
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.6),
+                            color: const Color.fromRGBO(255, 255, 255, 0.6),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Column(
@@ -524,7 +574,7 @@ class _SellerDashboardTabState extends State<SellerDashboardTab> {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: const Color.fromRGBO(0, 0, 0, 0.05),
                                     blurRadius: 5,
                                     offset: const Offset(0, 2),
                                   )
@@ -565,15 +615,19 @@ class _SellerDashboardTabState extends State<SellerDashboardTab> {
                                           try {
                                             await ApiService.acceptOrder(sale['id'].toString());
                                             if (context.mounted) Navigator.pop(context);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Pesanan berhasil diterima!'), backgroundColor: Colors.green),
-                                            );
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                const SnackBar(content: Text('Pesanan berhasil diterima!'), backgroundColor: Colors.green),
+                                              );
+                                            }
                                             _fetchSellerData();
                                           } catch (e) {
                                             if (context.mounted) Navigator.pop(context);
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('Gagal menerima pesanan: $e')),
-                                            );
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(content: Text('Gagal menerima pesanan: $e')),
+                                              );
+                                            }
                                           }
                                         },
                                         child: const Text('Terima Pesanan'),

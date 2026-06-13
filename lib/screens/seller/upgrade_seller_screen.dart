@@ -1,10 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:resqfood_app/services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UpgradeSellerScreen extends StatefulWidget {
+  const UpgradeSellerScreen({super.key});
+
   @override
-  _UpgradeSellerScreenState createState() => _UpgradeSellerScreenState();
+  State<UpgradeSellerScreen> createState() => _UpgradeSellerScreenState();
 }
 
 class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
@@ -19,6 +23,7 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
   final _idCardNumberController = TextEditingController();
   bool _isLoading = false;
   String? _idCardImageUrl; // nanti bisa tambah upload gambar KTP
+  File? _idCardFile;
 
   @override
   void dispose() {
@@ -54,21 +59,62 @@ class _UpgradeSellerScreenState extends State<UpgradeSellerScreen> {
         final userResponse = await ApiService.getProfile(); // ambil ulang user
         final newRoles = List<String>.from(userResponse['roles'] ?? ['pembeli']);
         await prefs.setStringList('roles', newRoles);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Pendaftaran penjual berhasil!')),
-        );
-        Navigator.pushReplacementNamed(context, '/dashboard'); // kembali ke dashboard
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Pendaftaran penjual berhasil!')),
+          );
+          Navigator.pushReplacementNamed(context, '/dashboard'); // kembali ke dashboard
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Gagal mendaftar')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['error'] ?? 'Gagal mendaftar')),
+          );
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _pickIdCard(ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(source: source);
+      if (picked != null) {
+        setState(() {
+          _idCardFile = File(picked.path);
+        });
+
+        // Show loader
+        if (mounted) {
+          showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+        }
+
+        try {
+          // Reuse product image uploader for now to get a file URL
+          final url = await ApiService.uploadProductImage(picked.path);
+          setState(() {
+            _idCardImageUrl = url;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Foto KTP berhasil diunggah'), backgroundColor: Colors.green));
+          }
+        } catch (e) {
+          if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mengupload KTP: $e')));
+        } finally {
+          if (mounted) Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking id card: $e');
+      if (mounted) Navigator.pop(context);
     }
   }
 

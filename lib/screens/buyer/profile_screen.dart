@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -17,7 +15,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isLoading = true;
   bool _isUpgrading = false;
   String _currentRole = "pembeli";
-  File? _avatarFile;
 
   @override
   void initState() {
@@ -39,9 +36,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal memuat profil: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat profil: $e')),
+        );
+      }
     }
   }
 
@@ -50,33 +49,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final picked = await picker.pickImage(source: source);
       if (picked != null) {
-        setState(() {
-          _avatarFile = File(picked.path);
-        });
-        
-        // Upload ke backend
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (context) => const Center(child: CircularProgressIndicator()),
+          builder: (_) => const Center(child: CircularProgressIndicator()),
         );
 
         final response = await ApiService.uploadProfilePicture(picked.path);
         
         if (context.mounted) Navigator.pop(context);
 
-        if (response['avatarUrl'] != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto profil berhasil diperbarui!'), backgroundColor: Colors.green),
-          );
-          _loadProfile();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(response['error'] ?? 'Gagal mengupload foto')),
-          );
+        if (mounted) {
+          if (response['avatarUrl'] != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Foto profil berhasil diperbarui!'), backgroundColor: Colors.green),
+            );
+            _loadProfile();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response['error'] ?? 'Gagal mengupload foto')),
+            );
+          }
         }
       }
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+      }
       debugPrint("Error picking avatar: $e");
     }
   }
@@ -116,9 +118,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // tapi idealnya mengisi data di upgrade-seller screen
       Navigator.pushNamed(context, '/upgrade-seller');
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
       setState(() => _isUpgrading = false);
     }
@@ -128,19 +132,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final prefs = await SharedPreferences.getInstance();
     final nextRole = _currentRole == "pembeli" ? "penjual" : "pembeli";
     await prefs.setString('current_role', nextRole);
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Berhasil beralih ke Mode ${nextRole == "penjual" ? "Penjual" : "Pembeli"}')),
-    );
-    
-    // Refresh page / reload dashboard
-    Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Berhasil beralih ke Mode ${nextRole == "penjual" ? "Penjual" : "Pembeli"}')),
+      );
+
+      // Refresh page / reload dashboard
+      Navigator.pushNamedAndRemoveUntil(context, '/dashboard', (route) => false);
+    }
   }
 
   Future<void> _logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    if (mounted) {
+      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
   }
 
   @override

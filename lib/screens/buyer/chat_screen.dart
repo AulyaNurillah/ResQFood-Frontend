@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
 import 'chat_room_screen.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+  const ChatScreen({super.key});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  State<ChatScreen> createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
@@ -24,7 +23,10 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _fetchChats() async {
     setState(() => _isLoading = true);
     try {
-      final orders = await ApiService.getMyOrders();
+      final profile = await ApiService.getProfile();
+      final roles = profile['roles'] as List? ?? [];
+      final bool isSeller = roles.contains('penjual');
+      final orders = isSeller ? await ApiService.getMySales() : await ApiService.getMyOrders();
       setState(() {
         _orders = orders;
         _isLoading = false;

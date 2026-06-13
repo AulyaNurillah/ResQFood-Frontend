@@ -1,14 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
-import 'dart:convert';
 
 class SellerScanScreen extends StatefulWidget {
-  const SellerScanScreen({Key? key}) : super(key: key);
+  const SellerScanScreen({super.key});
 
   @override
-  _SellerScanScreenState createState() => _SellerScanScreenState();
+  State<SellerScanScreen> createState() => _SellerScanScreenState();
 }
 
 class _SellerScanScreenState extends State<SellerScanScreen> {
@@ -91,13 +90,21 @@ class _SellerScanScreenState extends State<SellerScanScreen> {
         ),
         content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _scannerController.start();
-            },
-            child: const Text("Scan Lagi", style: TextStyle(color: Color(0xFF234A3E), fontWeight: FontWeight.bold)),
-          ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _scannerController.start();
+              },
+              child: const Text("Scan Lagi", style: TextStyle(color: Color(0xFF234A3E), fontWeight: FontWeight.bold)),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Open order list so pending transactions are visible
+                Navigator.pushNamed(context, '/order-list');
+              },
+              child: const Text("Lihat Pesanan", style: TextStyle(color: Color(0xFF234A3E), fontWeight: FontWeight.bold)),
+            ),
         ],
       ),
     );
@@ -153,7 +160,7 @@ class _SellerScanScreenState extends State<SellerScanScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.6),
+                  color: const Color.fromRGBO(255, 255, 255, 0.6),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(

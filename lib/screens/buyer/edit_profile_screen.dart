@@ -6,8 +6,10 @@ import 'package:resqfood_app/services/api_service.dart';
 import 'dart:io';
 
 class EditProfileScreen extends StatefulWidget {
+  const EditProfileScreen({super.key});
+
   @override
-  _EditProfileScreenState createState() => _EditProfileScreenState();
+  State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
@@ -43,6 +45,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       });
     } catch (e) {
       setState(() => _isLoading = false);
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal memuat profil: $e')),
       );
@@ -64,9 +67,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'phone': _phoneController.text.trim(),
         'address': _addressController.text.trim(),
       });
+      if (!mounted) return;
       if (response['id'] != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profil berhasil diupdate')),
+          const SnackBar(content: Text('Profil berhasil diupdate')),
         );
         Navigator.pop(context);
       } else {
@@ -75,6 +79,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -84,6 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickAvatar() async {
+    // kept for backward compatibility; open gallery
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
     if (picked != null) {
@@ -91,6 +97,49 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _avatarFile = File(picked.path);
         _avatarUrl = null;
       });
+    }
+  }
+
+  void _showAvatarPicker() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF234A3E)),
+              title: const Text('Ambil Foto Kamera'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAvatarFromSource(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: Color(0xFF234A3E)),
+              title: const Text('Pilih dari Galeri'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickAvatarFromSource(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAvatarFromSource(ImageSource source) async {
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(source: source);
+      if (picked != null) {
+        setState(() {
+          _avatarFile = File(picked.path);
+          _avatarUrl = null;
+        });
+      }
+    } catch (e) {
+      debugPrint('Gagal mengambil gambar: $e');
     }
   }
 
@@ -150,7 +199,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   children: [
                     // Avatar
                     GestureDetector(
-                      onTap: _pickAvatar,
+                      onTap: _showAvatarPicker,
                       child: CircleAvatar(
                         radius: 50,
                         backgroundColor: Color.fromRGBO(78, 102, 93, 0.4),

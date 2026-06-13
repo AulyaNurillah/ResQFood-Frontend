@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
 
 class ChatRoomScreen extends StatefulWidget {
   final String orderId;
   final String storeName;
 
   const ChatRoomScreen({
-    Key? key,
+    super.key,
     required this.orderId,
     required this.storeName,
-  }) : super(key: key);
+  });
 
   @override
-  _ChatRoomScreenState createState() => _ChatRoomScreenState();
+  State<ChatRoomScreen> createState() => _ChatRoomScreenState();
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
@@ -97,9 +96,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       }
       _fetchMessages(showLoading: false);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengirim pesan: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal mengirim pesan: $e')),
+        );
+      }
     }
   }
 

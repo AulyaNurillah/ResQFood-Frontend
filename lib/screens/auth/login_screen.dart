@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_colors.dart';
 import '../../services/auth_service.dart';
-import '../buyer/home_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -30,22 +29,15 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final loginResponse = await authService.login(
+      await authService.login(
         email: emailController.text.trim(),
         password: passwordController.text,
       );
 
       if (!mounted) return;
 
-      // Cek role user
-      final roles = loginResponse.user.roles;
-      
-      // Login berhasil, langsung ke HomeScreen
-      // (HomeScreen nanti akan menyesuaikan berdasarkan role)
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
-      );
+      // Login berhasil, langsung ke DashboardRouter
+      Navigator.pushReplacementNamed(context, '/dashboard');
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

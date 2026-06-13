@@ -4,13 +4,12 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../services/api_service.dart';
 import '../../constants/app_colors.dart';
-import 'product_detail_screen.dart';
 
 class MapsScreen extends StatefulWidget {
-  const MapsScreen({Key? key}) : super(key: key);
+  const MapsScreen({super.key});
 
   @override
-  _MapsScreenState createState() => _MapsScreenState();
+  State<MapsScreen> createState() => _MapsScreenState();
 }
 
 class _MapsScreenState extends State<MapsScreen> {
@@ -169,7 +168,7 @@ class _MapsScreenState extends State<MapsScreen> {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: const Color.fromRGBO(0, 0, 0, 0.2),
                       blurRadius: 10,
                       offset: const Offset(0, 5),
                     )
@@ -232,9 +231,11 @@ class _MapsScreenState extends State<MapsScreen> {
                             icon: const Icon(Icons.directions),
                             label: const Text('Get Directions'),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Membuka rute ke penjual...')),
-                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Membuka rute ke penjual...')),
+                                );
+                              }
                             },
                           ),
                         ),
@@ -244,9 +245,11 @@ class _MapsScreenState extends State<MapsScreen> {
                           child: IconButton(
                             icon: const Icon(Icons.phone, color: Colors.white),
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Menghubungi ${_selectedSeller['store_phone'] ?? 'penjual'}...')),
-                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Menghubungi ${_selectedSeller['store_phone'] ?? 'penjual'}...')),
+                                );
+                              }
                             },
                           ),
                         ),

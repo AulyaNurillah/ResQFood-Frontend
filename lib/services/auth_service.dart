@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -69,21 +70,21 @@ class AuthService {
         "Content-Type": "application/json",
       },
       body: jsonEncode({
-        "fullName": fullName,
+        "full_name": fullName,
         "phone": phone,
         "email": email,
         "password": password,
       }),
     );
 
-    print("STATUS : ${response.statusCode}");
-    print("BODY   : ${response.body}");
+    debugPrint("STATUS : ${response.statusCode}");
+    debugPrint("BODY   : ${response.body}");
 
     if (response.statusCode != 201) {
       throw Exception(response.body);
     }
-    print("STATUS: ${response.statusCode}");
-    print("BODY: ${response.body}");
+    debugPrint("STATUS: ${response.statusCode}");
+    debugPrint("BODY: ${response.body}");
   }
 
   Future<void> forgotPassword(

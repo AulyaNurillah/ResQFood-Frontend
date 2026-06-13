@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../services/api_service.dart';
-import '../../constants/app_colors.dart';
 
 class NotificationScreen extends StatefulWidget {
-  const NotificationScreen({Key? key}) : super(key: key);
+  const NotificationScreen({super.key});
 
   @override
-  _NotificationScreenState createState() => _NotificationScreenState();
+  State<NotificationScreen> createState() => _NotificationScreenState();
 }
 
 class _NotificationScreenState extends State<NotificationScreen> {
@@ -111,14 +110,14 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     margin: const EdgeInsets.only(bottom: 16),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isUnread ? Colors.white : Colors.white.withOpacity(0.7),
+                      color: isUnread ? Colors.white : const Color.fromRGBO(255, 255, 255, 0.7),
                       borderRadius: BorderRadius.circular(20),
                       border: isUnread
                           ? Border.all(color: const Color(0xFF3B6255), width: 1.5)
                           : null,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: const Color.fromRGBO(0, 0, 0, 0.05),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
